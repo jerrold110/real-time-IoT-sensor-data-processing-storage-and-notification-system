@@ -40,12 +40,12 @@ jar {
     manifest {
         attributes(
                 "Class-Path": configurations.compileClasspath.collect { it.getName() }.join(" "),
-                "Main-Class": "examples.ProducerExample"
+                "Main-Class": "sensors.SensorProducer"
         )
     }
 }
 
 shadowJar {
-    archiveBaseName = "kafka-java-getting-started"
+    archiveBaseName = "kafka-producer-sensor"
     archiveClassifier = ''
 }

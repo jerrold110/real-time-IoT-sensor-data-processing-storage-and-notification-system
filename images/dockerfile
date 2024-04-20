@@ -7,7 +7,7 @@ ENV GRADLE_VERSION=8.4 \
 # Install dependencies
 RUN apk --no-cache add curl \
     && mkdir -p /opt \
-    && mkdir -p /app/src/main/java/examples \
+    && mkdir -p /app/src/main/java/sensors \
     && curl -L https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip -o /tmp/gradle.zip \
     && unzip -d /opt /tmp/gradle.zip \
     && ln -s /opt/gradle-${GRADLE_VERSION} ${GRADLE_HOME} \
@@ -20,8 +20,8 @@ ENV PATH="${GRADLE_HOME}/bin:${PATH}"
 WORKDIR /app
 
 # Copy the Java file into the container
-COPY ProducerExample.java /app/src/main/java/examples
-COPY getting-started.properties /app
+COPY SensorProducer.java /app/src/main/java/sensors
+COPY RTproducer.properties /app
 COPY build.gradle /app
 
 # Build the project
@@ -29,5 +29,6 @@ RUN gradle build
 RUN gradle shadowJar
 
 # Run the Java application to produce data to Kafka
+#CMD java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducer getting-started.properties
 
 #Explore container with docker run -it producer /bin/sh

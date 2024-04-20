@@ -6,19 +6,22 @@ services:
     ports:
       - 29092:29092
     environment:
+    # KRAFT mode
       KAFKA_BROKER_ID: 1
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,CONTROLLER:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:9092,PLAINTEXT_HOST://localhost:29092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_NODE_ID: 1
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@broker:29093
-      KAFKA_LISTENERS: PLAINTEXT://broker:9092,CONTROLLER://broker:29093,PLAINTEXT_HOST://0.0.0.0:29092
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_PROCESS_ROLES: broker,controller # role of this server
+      KAFKA_NODE_ID: 1 # unique id for this server
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@broker:29093 # quorum voters
+      ####
+      KAFKA_LISTENERS: PLAINTEXT://broker:9092,CONTROLLER://broker:29093,PLAINTEXT_HOST://0.0.0.0:29092 # listeners
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:9092,PLAINTEXT_HOST://localhost:29092 # metadata listeners
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,CONTROLLER:PLAINTEXT # key-value pair for security protocol to use per listener name
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT # listener to use for inter-broker communication
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER # listeners used by controller
+      ####
       KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
       CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
 
@@ -31,17 +34,20 @@ services:
     ports:
       - 8081:8081
     environment:
-      SCHEMA_REGISTRY_HOST_NAME: schema-registry
-      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: broker:9092
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry # 
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: broker:9092 # kafka brokers to connect to
       SCHEMA_REGISTRY_LOG4J_ROOT_LOGLEVEL: WARN
+  
+  #kafka-connect: confluentinc/cp-kafka-connect
+  #confluent docker config reference kafka example
 
-  # kafka-producer-1:
-  #   image: openjdk:17-alpine
-  #   container_name: kafka-producer-1:
-  #   # volumes:
-  #   #   - ./producer-app:/producer-app  # Mount your application directory into the container
-  #   working_dir: /producer-app
-  #   depends_on:
-  #     - broker
-  #   command: >
-  #     sh -c " apk add --no-cache gradle"
+  kafka-producer-1:
+    image: openjdk:17-alpine
+    container_name: kafka-producer-1:
+    # volumes:
+    #   - ./producer-app:/producer-app  # Mount your application directory into the container
+    working_dir: /producer-app
+    depends_on:
+      - broker
+    command: >
+      sh -c " apk add --no-cache gradle"

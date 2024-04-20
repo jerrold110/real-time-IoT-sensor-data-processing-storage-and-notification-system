@@ -1,0 +1,8 @@
+Messages follow a key value format
+Messages are written to topics which is an abstraction of an event log
+Topics are partitioned (spread over kafka brokers)
+Events with the same event key are written to the same partition and a consumer of a partition will always read that parition's events in the order it was written
+
+In the case of our notification system:
+The consumer processor will either be Flink or Kafka streams. Since we are monitoring for temperatures for each sensor to know when to turn off a sensor
+the key should be the sensor's ID.
