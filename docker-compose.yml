@@ -24,6 +24,8 @@ services:
       ####
       KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
       CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+    command:
+      # kafka topic command
 
   schema-registry:
     image: confluentinc/cp-schema-registry:7.3.0
@@ -38,16 +40,19 @@ services:
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: broker:9092 # kafka brokers to connect to
       SCHEMA_REGISTRY_LOG4J_ROOT_LOGLEVEL: WARN
   
-  #kafka-connect: confluentinc/cp-kafka-connect
-  #confluent docker config reference kafka example
+  # kafka-connect: confluentinc/cp-kafka-connect
+  # confluent docker config reference kafka example
 
   kafka-producer-1:
-    image: openjdk:17-alpine
-    container_name: kafka-producer-1:
-    # volumes:
-    #   - ./producer-app:/producer-app  # Mount your application directory into the container
-    working_dir: /producer-app
+    image: producer:latest
+    container_name: kafka-producer-1
+    working_dir: /app
+    volumes:
+      - ./data:/app/data  # Mount your application directory into the container
     depends_on:
       - broker
-    command: >
-      sh -c " apk add --no-cache gradle"
+    command: /bin/sh -c "java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_0.json"
+
+    #- java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_0.json
+    # ["sleep", "infinite"] 
+      
