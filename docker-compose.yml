@@ -39,8 +39,8 @@ services:
       kafka-topics --bootstrap-server broker:9092 --list
 
       echo -e 'Creating kafka topics'
-      kafka-topics --bootstrap-server broker:9092 --create --if-not-exists --topic temperature-topic --replication-factor 1 --partitions 1
-      kafka-topics --bootstrap-server broker:9092 --create --if-not-exists --topic humidity-topic --replication-factor 1 --partitions 1
+      kafka-topics --bootstrap-server broker:9092 --create --if-not-exists --topic ${TEMP_TOPIC} --replication-factor 1 --partitions 1
+      kafka-topics --bootstrap-server broker:9092 --create --if-not-exists --topic ${HUM_TOPIC} --replication-factor 1 --partitions 1
 
       echo -e 'Successfully created the following topics:'
       kafka-topics --bootstrap-server broker:9092 --list
@@ -62,16 +62,53 @@ services:
   # kafka-connect: confluentinc/cp-kafka-connect
   # confluent docker config reference kafka example
 
-  kafka-producer-1 :
+  # Sensors(H:01 T:234)
+  kafka-producer-0 :
     image: producer:latest
-    container_name: kafka-p1 # alpine 
+    container_name: kafka-p0 # alpine 
     working_dir: /app
     volumes:  # Mount folder with all sensor data
       - ./data:/app/data  
     depends_on:
       - broker
-    # Apparently the syntax from Broker does not work?
-    command: /bin/sh -c "java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_0.json"
+    command: /bin/sh -c "java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_0.json humidity-topic"
+  # kafka-producer-1 :
+  #   image: producer:latest
+  #   container_name: kafka-p1 # alpine 
+  #   working_dir: /app
+  #   volumes:  # Mount folder with all sensor data
+  #     - ./data:/app/data  
+  #   depends_on:
+  #     - broker
+  #   command: /bin/sh -c "java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_1.json humidity-topic"
+  # kafka-producer-2 :
+  #   image: producer:latest
+  #   container_name: kafka-p2 # alpine 
+  #   working_dir: /app
+  #   volumes:  # Mount folder with all sensor data
+  #     - ./data:/app/data  
+  #   depends_on:
+  #     - broker
+  #   command: /bin/sh -c "java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_2.json temperature-topic"
+  # kafka-producer-3 :
+  #   image: producer:latest
+  #   container_name: kafka-p3 # alpine 
+  #   working_dir: /app
+  #   volumes:  # Mount folder with all sensor data
+  #     - ./data:/app/data  
+  #   depends_on:
+  #     - broker
+  #   command: /bin/sh -c "java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_3.json temperature-topic"
+  # kafka-producer-4 :
+  #   image: producer:latest
+  #   container_name: kafka-p4 # alpine 
+  #   working_dir: /app
+  #   volumes:  # Mount folder with all sensor data
+  #     - ./data:/app/data  
+  #   depends_on:
+  #     - broker
+  #   command: /bin/sh -c "java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_4.json temperature-topic"
+
 
     #["java", "-cp", "/app/build/libs/kafka-producer-sensor-0.0.1.jar", "sensors.SensorProducerApplication ", "RTproducer.properties", "data/sensor_0.json"] 
     #- java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_0.json
