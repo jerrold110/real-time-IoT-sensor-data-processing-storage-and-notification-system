@@ -21,9 +21,9 @@ ENV PATH="${GRADLE_HOME}/bin:${PATH}"\
 WORKDIR /app
 
 # Copy the Java file into the container
+COPY build.gradle /app
 COPY SensorProducerApplication.java /app/src/main/java/sensors
 COPY RTproducer.properties /app
-COPY build.gradle /app
 #COPY sensor_0.json /app/data
 
 # Build the project (docker compose)

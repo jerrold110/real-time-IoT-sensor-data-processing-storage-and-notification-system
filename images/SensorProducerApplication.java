@@ -59,6 +59,7 @@ public class SensorProducerApplication {
     }
 
     public static void main(String[] args) throws Exception {
+        System.out.println("Producer started!");
         if (args.length < 2) {
             throw new IllegalArgumentException(
                     "This program takes two arguments: the path to an environment configuration file and" +
@@ -66,7 +67,7 @@ public class SensorProducerApplication {
         }
 
         final Properties props = SensorProducerApplication.loadProperties(args[0]);
-        final String topic = "topic.temperature.name";
+        final String topic = "temperature-topic";
         final Producer<Integer, String> producer = new KafkaProducer<>(props);
         final SensorProducerApplication producerApp = new SensorProducerApplication(producer, topic);
 
