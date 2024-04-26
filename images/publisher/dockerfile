@@ -1,10 +1,8 @@
 FROM openjdk:17-alpine
 
-# Set environment variables for Gradle
 ENV GRADLE_VERSION=8.4 \
     GRADLE_HOME=/opt/gradle
 
-# Install dependencies
 RUN apk --no-cache add curl \
     && mkdir -p /opt \
     && mkdir -p /app/src/main/java/sensors \
@@ -17,7 +15,6 @@ RUN apk --no-cache add curl \
 ENV PATH="${GRADLE_HOME}/bin:${PATH}"\
     PRODUCER_ID=1
 
-# Set the working directory
 WORKDIR /app
 
 # Copy the Java file into the container
@@ -32,5 +29,4 @@ RUN gradle shadowJar
 
 # Run the Java application to produce data to Kafka (docker compose)
 # CMD java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_0.json
-
 # Explore container with docker run -it producer /bin/sh

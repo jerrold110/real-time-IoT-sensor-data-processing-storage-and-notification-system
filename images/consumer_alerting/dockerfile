@@ -1,0 +1,18 @@
+FROM flink:1.17.2
+
+RUN apt-get update -y && \
+apt-get install -y python3 python3-pip python3-dev && rm -rf /var/lib/apt/lists/*
+# create symbolic link (source, target)
+# some applications expect the Python interpreter to be named python rather than python3
+RUN ln -s /usr/bin/python3 /usr/bin/python
+
+# Get connectors for Kafka
+# https://repo1.maven.org/maven2/org/apache/flink/flink-connector-kafka/1.17.2/flink-connector-kafka-1.17.2.jar
+# https://repo.maven.apache.org/maven2/org/apache/flink/flink-sql-connector-kafka/1.17.2/flink-sql-connector-kafka-1.17.2.jar
+RUN mkdir code jar
+RUN wget https://repo.maven.apache.org/maven2/org/apache/flink/flink-sql-connector-kafka/1.17.2/flink-sql-connector-kafka-1.17.2.jar && \
+    mv flink-sql-connector-kafka-1.17.2.jar jar/flink-sql-connector-kafka-1.17.2.jar
+    
+# Install python dependencies
+COPY requirements.txt /opt/flink/
+RUN pip3 install --no-cache-dir -r requirements.txt
