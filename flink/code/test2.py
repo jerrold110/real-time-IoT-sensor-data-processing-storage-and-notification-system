@@ -8,7 +8,7 @@ from pyflink.datastream.connectors.file_system import FileSink, OutputFileConfig
 from pyflink.common import Types, WatermarkStrategy, Time, Encoder
 from pyflink.common.watermark_strategy import TimestampAssigner
 from pyflink.datastream import StreamExecutionEnvironment, ProcessWindowFunction
-from pyflink.datastream.window import TumblingEventTimeWindows, TimeWindow
+from pyflink.datastream.window import SlidingEventTimeWindows, TimeWindow
 
 
 class MyTimestampAssigner(TimestampAssigner):
@@ -51,11 +51,11 @@ if __name__ == '__main__':
 
     ds = data_stream.assign_timestamps_and_watermarks(watermark_strategy) \
         .key_by(lambda x: x[0], key_type=Types.STRING()) \
-        .window(TumblingEventTimeWindows.of(Time.milliseconds(5))) \
+        .window(SlidingEventTimeWindows.of(Time.milliseconds(5), Time.milliseconds(2))) \
         .process(CountWindowProcessFunction(),
                  Types.TUPLE([Types.STRING(), Types.INT(), Types.INT(), Types.INT()]))
 
-    # # define the sink
+    # define the sink
     # if output_path is not None:
     #     ds.sink_to(
     #         sink=FileSink.for_row_format(
@@ -70,7 +70,7 @@ if __name__ == '__main__':
     #         .build()
     #     )
     # else:
-    print("Printing result to stdout. Use --output to specify output path.")
+    #     print("Printing result to stdout. Use --output to specify output path.")
     ds.print()
 
     # submit for execution

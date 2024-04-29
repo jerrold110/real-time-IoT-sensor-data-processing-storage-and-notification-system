@@ -73,15 +73,17 @@ class MeanWindowProcessFunction(ProcessWindowFunction[tuple, tuple, str, TimeWin
                 key: str,
                 context: ProcessWindowFunction.Context[TimeWindow],
                 elements: Iterable[tuple]) -> Iterable[tuple]:
-        return [(key, context.window().start, context.window().end, mean([e for e in elements]) )]
+        return [(key, context.window().start, context.window().end, mean([e for e in elements]))]
 
 slidingwindowstream = datastream\
-        .key_by(lambda x:int(x[6])) \
-        .window(Time.seconds(10)) \
+        .key_by(lambda x:x[6]) \
+        .window(SlidingEventTimeWindows.of(Time.seconds(5), Time.seconds(1))) \
         .process(MeanWindowProcessFunction(),
-                 Types.TUPLE([Types.INT(), Types.INT(), Types.INT(), Types.FLOAT()]))
+                 Types.TUPLE([Types.STRING(), Types.TIMESTAMP(), Types.TIMESTAMP(), Types.FLOAT()]))
 
 slidingwindowstream.print()
+
+#datastream.print()
 #data_stream.map(lambda x: "Processed" + str(uuid.uuid4()) + " : " + x, output_type=Types.STRING()).print()
 #datastream.map(lambda x: "\n" + x, output_type=Types.STRING()).print()
 
