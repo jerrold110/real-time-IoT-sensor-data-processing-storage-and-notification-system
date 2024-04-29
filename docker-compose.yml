@@ -1,5 +1,5 @@
 services:
-  # Flink standalone application mode
+###### Flink standalone application mode
   pyflink_jobmanager:
     image: pyflink_alert:latest
     container_name: jobmanager
@@ -29,7 +29,7 @@ services:
         jobmanager.rpc.address: jobmanager
         taskmanager.numberOfTaskSlots: 2 
         parallelism.default: 2 
-
+##### Kafka 
   broker:
     image: confluentinc/cp-kafka:7.4.1
     hostname: broker
@@ -92,42 +92,42 @@ services:
 
 
   # Sensors(H:01 T:234)
-  kafka-producer-0 :
-    image: producer:latest
-    container_name: kafka-p0 # alpine 
-    working_dir: /app
-    volumes:  # Mount folder with all sensor data
-      - ./data:/app/data  
-    depends_on:
-      - broker
-    command: /bin/sh -c "java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_0.json humidity-topic"
-  kafka-producer-1 :
-    image: producer:latest
-    container_name: kafka-p1 # alpine 
-    working_dir: /app
-    volumes:  # Mount folder with all sensor data
-      - ./data:/app/data  
-    depends_on:
-      - broker
-    command: /bin/sh -c "java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_1.json humidity-topic"
-  kafka-producer-2 :
-    image: producer:latest
-    container_name: kafka-p2 # alpine 
-    working_dir: /app
-    volumes:  # Mount folder with all sensor data
-      - ./data:/app/data  
-    depends_on:
-      - broker
-    command: /bin/sh -c "java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_2.json temperature-topic"
-  kafka-producer-3 :
-    image: producer:latest
-    container_name: kafka-p3 # alpine 
-    working_dir: /app
-    volumes:  # Mount folder with all sensor data
-      - ./data:/app/data  
-    depends_on:
-      - broker
-    command: /bin/sh -c "java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_3.json temperature-topic"
+  # kafka-producer-0 :
+  #   image: producer:latest
+  #   container_name: kafka-p0 # alpine 
+  #   working_dir: /app
+  #   volumes:  # Mount folder with all sensor data
+  #     - ./data:/app/data  
+  #   depends_on:
+  #     - broker
+  #   command: /bin/sh -c "java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_0.json humidity-topic"
+  # kafka-producer-1 :
+  #   image: producer:latest
+  #   container_name: kafka-p1 # alpine 
+  #   working_dir: /app
+  #   volumes:  # Mount folder with all sensor data
+  #     - ./data:/app/data  
+  #   depends_on:
+  #     - broker
+  #   command: /bin/sh -c "java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_1.json humidity-topic"
+  # kafka-producer-2 :
+  #   image: producer:latest
+  #   container_name: kafka-p2 # alpine 
+  #   working_dir: /app
+  #   volumes:  # Mount folder with all sensor data
+  #     - ./data:/app/data  
+  #   depends_on:
+  #     - broker
+  #   command: /bin/sh -c "java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_2.json temperature-topic"
+  # kafka-producer-3 :
+  #   image: producer:latest
+  #   container_name: kafka-p3 # alpine 
+  #   working_dir: /app
+  #   volumes:  # Mount folder with all sensor data
+  #     - ./data:/app/data  
+  #   depends_on:
+  #     - broker
+  #   command: /bin/sh -c "java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_3.json temperature-topic"
   kafka-producer-4 :
     image: producer:latest
     container_name: kafka-p4 # alpine 
