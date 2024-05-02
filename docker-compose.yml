@@ -3,9 +3,13 @@ services:
   pyflink_jobmanager:
     image: pyflink_alert:latest
     container_name: jobmanager
+    depends_on:
+      - broker
     ports:
       - "8082:8081"
-    command: jobmanager
+    #entrypoint: ['/bin/sh', '-c']
+    command: >
+      jobmanager
     volumes:
      - ./flink/code:/opt/flink/code
     environment:
@@ -13,13 +17,14 @@ services:
         FLINK_PROPERTIES=
         jobmanager.rpc.address: jobmanager
         parallelism.default: 2     
-
+      
   pyflink_taskmanager:
     image: pyflink_alert:latest
     container_name: taskmanager
     depends_on:
       - pyflink_jobmanager
-    command: taskmanager
+    command: >
+        taskmanager
     scale: 1
     volumes:
       - ./flink/code:/opt/flink/code

@@ -15,7 +15,7 @@ class MyTimestampAssigner(TimestampAssigner):
     def extract_timestamp(self, value, record_timestamp) -> int:
         return int(value[1])
 
-
+# in, out, key, window
 class CountWindowProcessFunction(ProcessWindowFunction[tuple, tuple, str, TimeWindow]):
     def process(self,
                 key: str,

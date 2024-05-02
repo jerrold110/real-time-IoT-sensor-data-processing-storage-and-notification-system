@@ -4,6 +4,8 @@ This is the Pyflink consumer that consumes data from a Kafka topic, that employs
 """
 from typing import Iterable
 from statistics import mean
+import json
+import datetime
 
 from pyflink.datastream import StreamExecutionEnvironment
 from pyflink.common.typeinfo import Types
@@ -11,13 +13,14 @@ from pyflink.datastream.connectors.kafka import FlinkKafkaConsumer
 
 from pyflink.common.serialization import SimpleStringSchema # This should be able to deserialize the records from Kafk
 from pyflink.common import WatermarkStrategy, Time
+from pyflink.common.watermark_strategy import TimestampAssigner
 from pyflink.common.time import Duration
 from pyflink.datastream import StreamExecutionEnvironment, ProcessWindowFunction
 from pyflink.datastream.connectors.kafka import KafkaSource, KafkaOffsetsInitializer
-from pyflink.datastream.window import SlidingEventTimeWindows, TimeWindow
+from pyflink.datastream.window import SlidingEventTimeWindows, TimeWindow, SlidingProcessingTimeWindows
 
 
-print('')
+print('Pyflink running.....')
 
 # Create StreamExecutionEnvironment
 env = StreamExecutionEnvironment.get_execution_environment()
@@ -55,11 +58,24 @@ TimeStampAssigner will overwrite the Kafka timestamps the timestamps of the Kafk
 https://nightlies.apache.org/flink/flink-docs-release-1.17/docs/dev/datastream/event-time/generating_watermarks/#writing-watermarkgenerators
 https://nightlies.apache.org/flink/flink-docs-release-1.19/docs/concepts/time/#watermarks-in-parallel-streams
 """
+extract_timestamp = lambda x:float(json.loads(x)['timestamp'])
 
-watermark_strategy = WatermarkStrategy.for_bounded_out_of_orderness(Duration.of_seconds(20))  #WatermarkStrategy.for_monotonous_timestamps()
+# class MyTimestampAssigner(TimestampAssigner):
+#     def __init__(self):
+#         self.epoch = datetime.datetime.now()
+
+#     def extract_timestamp(self, value, record_timestamp) -> int:
+#         return str(extract_timestamp(value))
+
+
+watermark_strategy = WatermarkStrategy.for_monotonous_timestamps()\
+        #.for_bounded_out_of_orderness(Duration.of_seconds(2))\
+        #.with_timestamp_assigner(MyTimestampAssigner()) #WatermarkStrategy.for_bounded_out_of_orderness(Duration.of_seconds(20))  #
+
 datastream = env.from_source(kafka_source, \
                              watermark_strategy, \
-                             "Kafka Source")
+                             "Kafka Source")\
+                #.assign_timestamps_and_watermarks(watermark_strategy)
 
 # Process the data stream with key, window, transformation
 """
@@ -68,24 +84,36 @@ https://nightlies.apache.org/flink/flink-docs-master/api/python/examples/datastr
 
 """
 
+extract_value = lambda x:float(json.loads(x)['value'])
+
+# This follows the input format
+# The key in this stream is a key for now.
 class MeanWindowProcessFunction(ProcessWindowFunction[tuple, tuple, str, TimeWindow]):
     def process(self,
                 key: str,
                 context: ProcessWindowFunction.Context[TimeWindow],
                 elements: Iterable[tuple]) -> Iterable[tuple]:
-        return [(key, context.window().start, context.window().end, mean([e for e in elements]))]
-
+        
+        return [(key, 
+                 mean([extract_value(e) for e in elements])),
+                 context.window().start, 
+                 context.window().end]
+                 
+# There is an error with the watermarking, EventTimeWindow does nothing
 slidingwindowstream = datastream\
-        .key_by(lambda x:x[6]) \
-        .window(SlidingEventTimeWindows.of(Time.seconds(5), Time.seconds(1))) \
+        .key_by(lambda x:x[6], key_type=Types.STRING()) \
+        .window(SlidingProcessingTimeWindows.of(Time.seconds(1), Time.seconds(1))) \
         .process(MeanWindowProcessFunction(),
-                 Types.TUPLE([Types.STRING(), Types.TIMESTAMP(), Types.TIMESTAMP(), Types.FLOAT()]))
+                 Types.TUPLE([Types.STRING(), 
+                              Types.FLOAT(), 
+                              Types.INT(),
+                              Types.INT()])) # This follows the output format (key, value, start, end)
 
 slidingwindowstream.print()
 
-#datastream.print()
-#data_stream.map(lambda x: "Processed" + str(uuid.uuid4()) + " : " + x, output_type=Types.STRING()).print()
-#datastream.map(lambda x: "\n" + x, output_type=Types.STRING()).print()
+# datastream = datastream.map(lambda x:type(x[6]).timestamp())
+# #datastream = datastream.map(lambda x:x.timestamp())
+# datastream.print()
 
 env.execute("PyFlink Kafka Example")
-print('hello')
+print('End successful')
