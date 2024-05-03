@@ -1,12 +1,16 @@
 """
-This is the Pyflink consumer that consumes data from a Kafka topic, that employs a sliding window state logic.
-Stream is converted to WindowStream, then filters out windows that no not meet overheating criteria and sends remaining records to email notification service.
+This is the Flink consumer that consumes data from a Kafka topic, that employs a sliding window state logic.
+This file:
+1. Sets up a UDP socket to send datagrams to the alert handler
+2. Sets up the stream environment to receive data from the Kafka topic
+3. Processes the data in the stream, and sends alerts to the alert_handler
 
 """
 from typing import Iterable
 from statistics import mean
 import json
 import datetime
+import socket
 
 from pyflink.datastream import StreamExecutionEnvironment
 from pyflink.common.typeinfo import Types
@@ -21,11 +25,15 @@ from pyflink.datastream.connectors.kafka import KafkaSource, KafkaOffsetsInitial
 from pyflink.datastream.window import SlidingEventTimeWindows, TimeWindow, SlidingProcessingTimeWindows
 
 
-print('Pyflink running.....')
+print('Pyflink stream processing running.....')
 
 # Temperature threshold variables for overheating
 overheat_mean_threshold = 90.0
 overheat_constant_threshold = 89.0
+
+# Datagram docker to send alerts to alert_handler
+client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+alert_handler_address = ('alert_handler', 9000)
 
 # Create StreamExecutionEnvironment
 env = StreamExecutionEnvironment.get_execution_environment()
@@ -123,9 +131,16 @@ class WindowProcessFunction(ProcessWindowFunction[tuple, tuple, int, TimeWindow]
         timestamps_l = [d['timestamp'] for d in json_to_dic]
 
         # Alerting and machine throttle logic
+        overheat_constant = True if all(x > overheat_constant_threshold for x in values_l) else False
+        mean_temp = round(mean(values_l), 3)
+
+        if mean_temp > overheat_mean_threshold or overheat_constant:
+            message = json.dumps({'sensor_id':key, 'timestamp':timestamps_l[0]})
+            client_socket.sendto(message.encode('utf-8'), alert_handler_address)
+
         return [(key, 
-                 round(mean(values_l), 3),
-                 True if all(x > overheat_constant_threshold for x in values_l) else False, 
+                 mean_temp,
+                 overheat_constant, 
                  timestamps_l[0],
                  timestamps_l[-1]
                  )]
@@ -140,11 +155,10 @@ slidingwindowstream = datastream\
                               Types.BOOLEAN(),
                               Types.STRING(),
                               Types.STRING()])) \
-        .filter(lambda x:x[2]==True or x[1]>overheat_mean_threshold)       # Filter windows that meet overheating criteria
+        #.filter(lambda x:x[2]==True or x[1]>overheat_mean_threshold)  
 
 slidingwindowstream.print()
 
 # datastream = datastream.map(lambda x:type(x[6]))
 # datastream.print()
 env.execute("PyFlink Kafka Example")
-print('End successful')

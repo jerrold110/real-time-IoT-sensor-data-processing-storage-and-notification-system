@@ -1,0 +1,19 @@
+services:
+  server:
+    image: python:3.11-alpine3.18
+    container_name: server
+    command: |
+      python python_code/server.py
+    volumes:
+      - ./code:/python_code
+
+  client:
+    image: python:3.11-alpine3.18
+    container_name: client
+    depends_on:
+      - server
+    command: |
+      python python_code/client.py
+      tail -f /dev/null
+    volumes:
+      - ./code:/python_code

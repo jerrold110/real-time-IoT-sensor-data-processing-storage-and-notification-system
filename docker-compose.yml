@@ -1,5 +1,5 @@
 services:
-###### Flink standalone application mode
+###### Flink standalone application mode and alert handler
   pyflink_jobmanager:
     image: pyflink_alert:latest
     container_name: jobmanager
@@ -34,6 +34,15 @@ services:
         jobmanager.rpc.address: jobmanager
         taskmanager.numberOfTaskSlots: 2 
         parallelism.default: 2 
+
+  alert_handler:
+    image: python:3.11-alpine3.18
+    container_name: alert_handler
+    command: |
+      python python_code/alert_handler.py
+    volumes:
+      - ./code:/python_code
+
 ##### Kafka 
   broker:
     image: confluentinc/cp-kafka:7.4.1
