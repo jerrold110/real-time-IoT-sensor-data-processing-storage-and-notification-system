@@ -1,16 +1,15 @@
 """
 This is the Flink consumer that consumes data from a Kafka topic, that employs a sliding window state logic.
 This file:
-1. Sets up a UDP socket to send datagrams to the alert handler
-2. Sets up the stream environment to receive data from the Kafka topic
-3. Processes the data in the stream, and sends alerts to the alert_handler
+1. Sets up the stream environment to receive data from the Kafka topic
+2. Sets watermarks and deserialisation schema
+3. Processes the data in the stream as a windowStream, and sends email alerts in the process function
 
 """
 from typing import Iterable
 from statistics import mean
 import json
 import datetime
-import socket
 
 from pyflink.datastream import StreamExecutionEnvironment
 from pyflink.common.typeinfo import Types
@@ -28,12 +27,8 @@ from pyflink.datastream.window import SlidingEventTimeWindows, TimeWindow, Slidi
 print('Pyflink stream processing running.....')
 
 # Temperature threshold variables for overheating
-overheat_mean_threshold = 90.0
+overheat_mean_threshold = 75.0
 overheat_constant_threshold = 89.0
-
-# Datagram docker to send alerts to alert_handler
-client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-alert_handler_address = ('alert_handler', 9000)
 
 # Create StreamExecutionEnvironment
 env = StreamExecutionEnvironment.get_execution_environment()
@@ -107,8 +102,6 @@ Good examples here with data_stream.assign_timestamps_and_watermarks(watermark_s
 https://nightlies.apache.org/flink/flink-docs-master/api/python/examples/datastream/window.html#sliding-window
 """
 
-
-
 # This follows the input format
 # The key in this stream is an int
 # I am using my producer embedded timestamp
@@ -135,8 +128,8 @@ class WindowProcessFunction(ProcessWindowFunction[tuple, tuple, int, TimeWindow]
         mean_temp = round(mean(values_l), 3)
 
         if mean_temp > overheat_mean_threshold or overheat_constant:
-            message = json.dumps({'sensor_id':key, 'timestamp':timestamps_l[0]})
-            client_socket.sendto(message.encode('utf-8'), alert_handler_address)
+            # Send email with SMTPLIB
+            None
 
         return [(key, 
                  mean_temp,
@@ -155,10 +148,7 @@ slidingwindowstream = datastream\
                               Types.BOOLEAN(),
                               Types.STRING(),
                               Types.STRING()])) \
-        #.filter(lambda x:x[2]==True or x[1]>overheat_mean_threshold)  
+        .filter(lambda x:x[2]==True or x[1]>overheat_mean_threshold)  
 
 slidingwindowstream.print()
-
-# datastream = datastream.map(lambda x:type(x[6]))
-# datastream.print()
-env.execute("PyFlink Kafka Example")
+env.execute("Temperature monitoring windowed stream")
