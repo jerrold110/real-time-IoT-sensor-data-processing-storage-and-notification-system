@@ -10,6 +10,7 @@ from typing import Iterable
 from statistics import mean
 import json
 import datetime
+import time
 
 from pyflink.datastream import StreamExecutionEnvironment
 from pyflink.common.typeinfo import Types
@@ -24,10 +25,10 @@ from pyflink.datastream.connectors.kafka import KafkaSource, KafkaOffsetsInitial
 from pyflink.datastream.window import SlidingEventTimeWindows, TimeWindow, SlidingProcessingTimeWindows
 
 
-print('Pyflink stream processing running.....')
+print('Pyflink running 2.....')
 
 # Temperature threshold variables for overheating
-overheat_mean_threshold = 75.0
+overheat_mean_threshold = 90.0
 overheat_constant_threshold = 89.0
 
 # Create StreamExecutionEnvironment
@@ -49,17 +50,25 @@ https://nightlies.apache.org/flink/flink-docs-master/api/python/reference/pyflin
 
 Kafka source is able to consume messages starting from different offsets by specifying OffsetsInitializer. Offsets are unique messages associated with each message within a partition of a topic
 https://nightlies.apache.org/flink/flink-docs-release-1.17/docs/connectors/datastream/kafka/#starting-offset
+
+Kafka and idle
+https://nightlies.apache.org/flink/flink-docs-release-1.17/docs/dev/datastream/event-time/generating_watermarks/#watermark-strategies-and-the-kafka-connector
+https://nightlies.apache.org/flink/flink-docs-release-1.17/docs/dev/datastream/event-time/generating_watermarks/#how-operators-process-watermarks
 """
 deserialization_schema = SimpleStringSchema()
 offset = KafkaOffsetsInitializer.earliest() 
 properties = {'bootstrap.servers':'broker:9092',
               'group.id':'test_group'}
-kafka_source = KafkaSource.builder() \
-        .set_topics("temperature-topic") \
-        .set_properties(properties) \
-        .set_starting_offsets(offset) \
-        .set_value_only_deserializer(deserialization_schema)\
-        .build()
+# kafka_source = KafkaSource.builder() \
+#         .set_topics("temperature-topic") \
+#         .set_properties(properties) \
+#         .set_starting_offsets(offset) \
+#         .set_value_only_deserializer(deserialization_schema)\
+#         .build()
+kafka_source = FlinkKafkaConsumer(
+    'temperature-topic',
+    deserialization_schema,
+    properties=properties)
 
 # Create Datastream
 # watermarks in parallel streams
@@ -68,33 +77,35 @@ TimeStampAssigner will overwrite the Kafka timestamps the timestamps of the Kafk
 https://nightlies.apache.org/flink/flink-docs-release-1.17/docs/dev/datastream/event-time/generating_watermarks/#writing-watermarkgenerators
 https://nightlies.apache.org/flink/flink-docs-release-1.19/docs/concepts/time/#watermarks-in-parallel-streams
 
-class MyTimestampAssigner(TimestampAssigner):
-    def __init__(self):
-        self.epoch = datetime.datetime.now()
-
-    def extract_timestamp(self, value, record_timestamp) -> int:
-        extract_timestamp = lambda x:float(json.loads(x)['timestamp'])
-        return int(1)
-
 """
 
 extract_value = lambda x:float(json.loads(x)['value'])
 extract_timestamp = lambda x:json.loads(x)['timestamp']
+
+class CustomTimestampAssigner(TimestampAssigner):
+    def extract_timestamp(self, value, record_timestamp) -> int:
+        ts_string = extract_timestamp(value)
+        timestamp_obj = datetime.datetime.strptime(ts_string, "%Y-%m-%d %H:%M:%S")
+        timestamp = int(time.mktime(timestamp_obj.timetuple()))
+        print(timestamp)
+        return timestamp
+
 """
 https://nightlies.apache.org/flink/flink-docs-release-1.17/docs/dev/datastream/event-time/generating_watermarks/#watermark-strategies-and-the-kafka-connector
 .for_bounded_out_of_orderness()
 multiple partitions often get consumed in parallel, interleaving the events from the partitions and destroying the per-partition patterns
+
+.for_monotonous_timestamps()
+.for_bounded_out_of_orderness(Duration.of_seconds(2))
 """
-watermark_strategy = WatermarkStrategy\
-.for_bounded_out_of_orderness(Duration.of_seconds(2))\
-#.with_timestamp_assigner(MyTimestampAssigner())
-#.for_monotonous_timestamps()\
+watermark_strategy = WatermarkStrategy \
+.for_monotonous_timestamps()\
+.with_timestamp_assigner(CustomTimestampAssigner()) \
+.for_bounded_out_of_orderness(Duration.of_seconds(2)) \
+.with_idleness(Duration.of_seconds(5))
 
-
-datastream = env.from_source(kafka_source, \
-                             watermark_strategy, \
-                             "Kafka Temperature topic")\
-                #.assign_timestamps_and_watermarks(watermark_strategy)
+datastream = env.add_source(kafka_source)\
+                .assign_timestamps_and_watermarks(watermark_strategy)
 
 # Process the data stream with key, window, transformation
 """
@@ -141,14 +152,14 @@ class WindowProcessFunction(ProcessWindowFunction[tuple, tuple, int, TimeWindow]
 # There is an error with the watermarking, EventTimeWindow does nothing
 slidingwindowstream = datastream\
         .key_by(lambda x:int(x[6]), key_type=Types.INT()) \
-        .window(SlidingProcessingTimeWindows.of(Time.seconds(10), Time.seconds(1))) \
+        .window(SlidingEventTimeWindows.of(Time.seconds(10), Time.seconds(1))) \
         .process(WindowProcessFunction(),
                  Types.TUPLE([Types.INT(), # This follows the output format (key, value, start, end)
                               Types.FLOAT(),
                               Types.BOOLEAN(),
                               Types.STRING(),
                               Types.STRING()])) \
-        .filter(lambda x:x[2]==True or x[1]>overheat_mean_threshold)  
+        #.filter(lambda x:x[2]==True or x[1]>overheat_mean_threshold)  
 
 slidingwindowstream.print()
 env.execute("Temperature monitoring windowed stream")

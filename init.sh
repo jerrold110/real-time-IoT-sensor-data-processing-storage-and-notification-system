@@ -1,2 +1,2 @@
 #!/bin/bash
-docker exec -it jobmanager python code/dev1.py
+docker exec -it jobmanager python code/stream_window_eventtime.py
