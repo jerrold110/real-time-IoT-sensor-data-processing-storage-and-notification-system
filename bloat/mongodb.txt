@@ -1,0 +1,12 @@
+MongoDB stores data records as documents (rows)
+documents are gathered together in collections (tables)
+databases hold one or more collections of documents (database)
+
+show dbs
+db
+use <database>
+
+https://www.mongodb.com/docs/manual/reference/method/
+
+image: mongo:7.0.10-rc0-jammy
+

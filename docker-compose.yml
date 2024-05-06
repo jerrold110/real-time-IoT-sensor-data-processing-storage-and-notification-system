@@ -1,155 +1,164 @@
 services:
-# MongoDB
-
-
-###### Flink standalone application mode and alert handler
-  pyflink_jobmanager:
-    image: pyflink_alert:latest
-    container_name: jobmanager
-    depends_on:
-      - broker
-    ports:
-      - "8082:8081"
-    #entrypoint: ['/bin/sh', '-c']
-    command: >
-      jobmanager
+###### Mongo
+### Config variables https://hub.docker.com/r/bitnami/mongodb
+  mongodb:
+    image: mongo:7.0.10-rc0-jammy
+    container_name: mongodb
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=root
+      - MONGODB_INITDB_DATABASE=root
     volumes:
-     - ./flink/code:/opt/flink/code
-    environment:
-      - |
-        FLINK_PROPERTIES=
-        jobmanager.rpc.address: jobmanager
-        parallelism.default: 2     
+      - .mongo/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+
+# ###### Flink standalone application mode and alert handler
+#   pyflink_jobmanager:
+#     image: pyflink_alert:latest
+#     container_name: jobmanager
+#     depends_on:
+#       - broker
+#     ports:
+#       - "8082:8081"
+#     #entrypoint: ['/bin/sh', '-c']
+#     command: >
+#       jobmanager
+#     volumes:
+#      - ./flink/code:/opt/flink/code
+#     environment:
+#       - |
+#         FLINK_PROPERTIES=
+#         jobmanager.rpc.address: jobmanager
+#         parallelism.default: 2     
       
-  pyflink_taskmanager:
-    image: pyflink_alert:latest
-    container_name: taskmanager
-    depends_on:
-      - pyflink_jobmanager
-    command: >
-        taskmanager
-    scale: 1
-    volumes:
-      - ./flink/code:/opt/flink/code
-    environment:
-      - |
-        FLINK_PROPERTIES=
-        jobmanager.rpc.address: jobmanager
-        taskmanager.numberOfTaskSlots: 2 
-        parallelism.default: 2 
+#   pyflink_taskmanager:
+#     image: pyflink_alert:latest
+#     container_name: taskmanager
+#     depends_on:
+#       - pyflink_jobmanager
+#     command: >
+#         taskmanager
+#     scale: 1
+#     volumes:
+#       - ./flink/code:/opt/flink/code
+#     environment:
+#       - |
+#         FLINK_PROPERTIES=
+#         jobmanager.rpc.address: jobmanager
+#         taskmanager.numberOfTaskSlots: 2 
+#         parallelism.default: 2 
 
-##### Kafka 
-  broker:
-    image: confluentinc/cp-kafka:7.4.1
-    hostname: broker
-    container_name: broker
-    ports:
-     - 29092:29092
-    environment:
-    # KRAFT mode
-      KAFKA_BROKER_ID: 1
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_PROCESS_ROLES: broker,controller # role of this server
-      KAFKA_NODE_ID: 1 # unique id for this server
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@broker:29093 # quorum voters
-      ####
-      KAFKA_LISTENERS: PLAINTEXT://broker:9092,CONTROLLER://broker:29093,PLAINTEXT_HOST://0.0.0.0:29092 # listeners
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:9092,PLAINTEXT_HOST://localhost:29092 # metadata listeners
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,CONTROLLER:PLAINTEXT # key-value pair for security protocol to use per listener name
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT # listener to use for inter-broker communication
-      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER # listeners used by controller
-      ####
-      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
-      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+# ##### Kafka 
+#   broker:
+#     image: confluentinc/cp-kafka:7.4.1
+#     hostname: broker
+#     container_name: broker
+#     ports:
+#      - 29092:29092
+#     environment:
+#     # KRAFT mode
+#       KAFKA_BROKER_ID: 1
+#       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+#       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+#       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+#       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+#       KAFKA_PROCESS_ROLES: broker,controller # role of this server
+#       KAFKA_NODE_ID: 1 # unique id for this server
+#       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@broker:29093 # quorum voters
+#       ####
+#       KAFKA_LISTENERS: PLAINTEXT://broker:9092,CONTROLLER://broker:29093,PLAINTEXT_HOST://0.0.0.0:29092 # listeners
+#       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:9092,PLAINTEXT_HOST://localhost:29092 # metadata listeners
+#       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,CONTROLLER:PLAINTEXT # key-value pair for security protocol to use per listener name
+#       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT # listener to use for inter-broker communication
+#       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER # listeners used by controller
+#       ####
+#       KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
+#       CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
 
-    # Stackoverflow https://stackoverflow.com/questions/64865361/docker-compose-create-kafka-topics
-    # Use plaintexthost(KAFKA_INTER_BROKER_LISTENER_NAME) port 
-  init-kafka:
-    image: confluentinc/cp-kafka:7.4.1
-    container_name: init-kafka
-    depends_on:
-      - broker
-    entrypoint: [ '/bin/sh', '-c' ]
-    command: |
-      "
-      # blocks until kafka is reachable
-      kafka-topics --bootstrap-server broker:9092 --list
+#     # Stackoverflow https://stackoverflow.com/questions/64865361/docker-compose-create-kafka-topics
+#     # Use plaintexthost(KAFKA_INTER_BROKER_LISTENER_NAME) port 
+#   init-kafka:
+#     image: confluentinc/cp-kafka:7.4.1
+#     container_name: init-kafka
+#     depends_on:
+#       - broker
+#     entrypoint: [ '/bin/sh', '-c' ]
+#     command: |
+#       "
+#       # blocks until kafka is reachable
+#       kafka-topics --bootstrap-server broker:9092 --list
 
-      echo -e 'Creating kafka topics'
-      kafka-topics --bootstrap-server broker:9092 --create --if-not-exists --topic ${TEMP_TOPIC} --replication-factor 1 --partitions 1
-      kafka-topics --bootstrap-server broker:9092 --create --if-not-exists --topic ${HUM_TOPIC} --replication-factor 1 --partitions 1
+#       echo -e 'Creating kafka topics'
+#       kafka-topics --bootstrap-server broker:9092 --create --if-not-exists --topic ${TEMP_TOPIC} --replication-factor 1 --partitions 1
+#       kafka-topics --bootstrap-server broker:9092 --create --if-not-exists --topic ${HUM_TOPIC} --replication-factor 1 --partitions 1
 
-      echo -e 'Successfully created the following topics:'
-      kafka-topics --bootstrap-server broker:9092 --list
-      "
+#       echo -e 'Successfully created the following topics:'
+#       kafka-topics --bootstrap-server broker:9092 --list
+#       "
 
-  schema-registry:
-    image: confluentinc/cp-schema-registry:7.3.0
-    hostname: schema-registry
-    container_name: schema-registry
-    depends_on:
-      - broker
-    ports:
-      - 8081:8081
-    environment:
-      SCHEMA_REGISTRY_HOST_NAME: schema-registry # 
-      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: broker:9092 # kafka brokers to connect to
-      SCHEMA_REGISTRY_LOG4J_ROOT_LOGLEVEL: WARN
+#   schema-registry:
+#     image: confluentinc/cp-schema-registry:7.3.0
+#     hostname: schema-registry
+#     container_name: schema-registry
+#     depends_on:
+#       - broker
+#     ports:
+#       - 8081:8081
+#     environment:
+#       SCHEMA_REGISTRY_HOST_NAME: schema-registry # 
+#       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: broker:9092 # kafka brokers to connect to
+#       SCHEMA_REGISTRY_LOG4J_ROOT_LOGLEVEL: WARN
 
-  # Sensors(H:01 T:234)
-  kafka-producer-0 :
-    image: producer:latest
-    container_name: kafka-p0 # alpine 
-    working_dir: /app
-    volumes:  # Mount folder with all sensor data
-      - ./data:/app/data  
-    depends_on:
-      - broker
-    command: /bin/sh -c "java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_0.json humidity-topic"
-  kafka-producer-1 :
-    image: producer:latest
-    container_name: kafka-p1 # alpine 
-    working_dir: /app
-    volumes:  # Mount folder with all sensor data
-      - ./data:/app/data  
-    depends_on:
-      - broker
-    command: /bin/sh -c "java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_1.json humidity-topic"
-  kafka-producer-2 :
-    image: producer:latest
-    container_name: kafka-p2 # alpine 
-    working_dir: /app
-    volumes:  # Mount folder with all sensor data
-      - ./data:/app/data  
-    depends_on:
-      - broker
-    command: /bin/sh -c "java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_2.json temperature-topic"
-  kafka-producer-3 :
-    image: producer:latest
-    container_name: kafka-p3 # alpine 
-    working_dir: /app
-    volumes:  # Mount folder with all sensor data
-      - ./data:/app/data  
-    depends_on:
-      - broker
-    command: /bin/sh -c "java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_3.json temperature-topic"
-  kafka-producer-4 :
-    image: producer:latest
-    container_name: kafka-p4 # alpine 
-    working_dir: /app
-    volumes:  # Mount folder with all sensor data
-      - ./data:/app/data  
-    depends_on:
-      - broker
-    command: /bin/sh -c "java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_4.json temperature-topic"
+#   # Sensors(H:01 T:234)
+#   kafka-producer-0 :
+#     image: producer:latest
+#     container_name: kafka-p0 # alpine 
+#     working_dir: /app
+#     volumes:  # Mount folder with all sensor data
+#       - ./data:/app/data  
+#     depends_on:
+#       - broker
+#     command: /bin/sh -c "java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_0.json humidity-topic"
+#   kafka-producer-1 :
+#     image: producer:latest
+#     container_name: kafka-p1 # alpine 
+#     working_dir: /app
+#     volumes:  # Mount folder with all sensor data
+#       - ./data:/app/data  
+#     depends_on:
+#       - broker
+#     command: /bin/sh -c "java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_1.json humidity-topic"
+#   kafka-producer-2 :
+#     image: producer:latest
+#     container_name: kafka-p2 # alpine 
+#     working_dir: /app
+#     volumes:  # Mount folder with all sensor data
+#       - ./data:/app/data  
+#     depends_on:
+#       - broker
+#     command: /bin/sh -c "java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_2.json temperature-topic"
+#   kafka-producer-3 :
+#     image: producer:latest
+#     container_name: kafka-p3 # alpine 
+#     working_dir: /app
+#     volumes:  # Mount folder with all sensor data
+#       - ./data:/app/data  
+#     depends_on:
+#       - broker
+#     command: /bin/sh -c "java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_3.json temperature-topic"
+#   kafka-producer-4 :
+#     image: producer:latest
+#     container_name: kafka-p4 # alpine 
+#     working_dir: /app
+#     volumes:  # Mount folder with all sensor data
+#       - ./data:/app/data  
+#     depends_on:
+#       - broker
+#     command: /bin/sh -c "java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_4.json temperature-topic"
 
 
-#["java", "-cp", "/app/build/libs/kafka-producer-sensor-0.0.1.jar", "sensors.SensorProducerApplication ", "RTproducer.properties", "data/sensor_0.json"] 
-#- java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_0.json
-# ["sleep", "infinite"] 
+# #["java", "-cp", "/app/build/libs/kafka-producer-sensor-0.0.1.jar", "sensors.SensorProducerApplication ", "RTproducer.properties", "data/sensor_0.json"] 
+# #- java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_0.json
+# # ["sleep", "infinite"] 
       
-# kafka-connect: confluentinc/cp-kafka-connect
-# confluent docker config reference kafka example
+# # kafka-connect: confluentinc/cp-kafka-connect
+# # confluent docker config reference kafka example

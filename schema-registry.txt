@@ -1,0 +1,6 @@
+Schema registry provides a centralized repository for managing and validating schemas for  topic message data,
+for ser and deser of the data. Producers and consumers to topics can use
+schemas to ensure data consistencey and compatibility as schemas evolve.
+
+I have to register schemas. A schema defines the structure of message data and acts as a blueprint
+for data.
