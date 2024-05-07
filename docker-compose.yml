@@ -9,7 +9,8 @@ services:
       - MONGO_INITDB_ROOT_PASSWORD=root
       - MONGODB_INITDB_DATABASE=root
     volumes:
-      - .mongo/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+      - ./mongo/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro 
+    #   - volume1:/data/db # Mounted volume to persist data
 
 # ###### Flink standalone application mode and alert handler
 #   pyflink_jobmanager:
@@ -162,3 +163,6 @@ services:
       
 # # kafka-connect: confluentinc/cp-kafka-connect
 # # confluent docker config reference kafka example
+
+# volumes:
+#   volume1:
