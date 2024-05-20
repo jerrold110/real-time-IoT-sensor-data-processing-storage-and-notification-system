@@ -8,5 +8,5 @@ use <database>
 
 https://www.mongodb.com/docs/manual/reference/method/
 
-image: mongo:7.0.10-rc0-jammy
+
 

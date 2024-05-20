@@ -95,7 +95,7 @@ services:
       echo -e 'Successfully created the following topics:'
       kafka-topics --bootstrap-server broker:9092 --list
       "
-
+  # https://docs.confluent.io/platform/current/schema-registry/index.html
   schema-registry:
     image: confluentinc/cp-schema-registry:7.3.0
     hostname: schema-registry
