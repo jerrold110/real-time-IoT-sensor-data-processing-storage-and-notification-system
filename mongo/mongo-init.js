@@ -16,5 +16,11 @@ adminDB.createUser({
 adminDB.createCollection('temperature');
 adminDB.createCollection('humidity');
 
-// mongosh -u root -p root
-// mongosh -u sensor_user -p sensor_pass --authenticationDatabase sensors
+/* 
+mongosh -u root -p root
+mongosh -u sensor_user -p sensor_pass --authenticationDatabase sensors
+show dbs
+show users
+show collections
+db.humidity.find()
+*/

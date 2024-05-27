@@ -4,7 +4,7 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.common.serialization.StringSerializer;
+//import org.apache.kafka.common.serialization.StringSerializer;
 //import org.apache.kafka.common.serialization.IntegerSerializer;
 
 import com.fasterxml.jackson.databind.JsonNode;
