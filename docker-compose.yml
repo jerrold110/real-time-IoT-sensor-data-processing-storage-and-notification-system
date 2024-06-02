@@ -1,6 +1,6 @@
 services:
 ################### Kafka ###################
-  broker:
+  kafka_broker:
     image: confluentinc/cp-kafka:7.4.1
     hostname: broker
     container_name: kafka-broker
@@ -23,16 +23,16 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT # listener to use for inter-broker communication
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER # listeners used by controller
       ####
-      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
+      #KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
       CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
 
     # Stackoverflow https://stackoverflow.com/questions/64865361/docker-compose-create-kafka-topics
     # Use plaintexthost(KAFKA_INTER_BROKER_LISTENER_NAME) port 
-  init-kafka:
+  kafka_init:
     image: confluentinc/cp-kafka:7.4.1
     container_name: kafka-init
     depends_on:
-      - broker
+      - kafka_broker
     entrypoint: [ '/bin/sh', '-c' ]
     command: |
       "
@@ -47,16 +47,41 @@ services:
       kafka-topics --bootstrap-server broker:9092 --list
       "
 
-  # There is no code that runs in this container, it is just a kafka container that runs connect-standalone.sh
-  kafka-connect:
-    image: confluentinc/cp-kafka:7.4.1
-    container_name: kafka-connnect
+  kafka_connect:
+    build:
+      context: .
+      dockerfile: connect.Dockerfile
+    hostname: connect
+    container_name: kafka-connect
     depends_on:
-      - broker
-    working_dir: /
+      - kafka_broker
+    environment:
+      CONNECT_BOOTSTRAP_SERVERS: 'kafka_broker:9092'
+      CONNECT_REST_PORT: 8083
+      CONNECT_GROUP_ID: 'kafka-connect-group'
+      #### container will crash without these
+      CONNECT_CONFIG_STORAGE_TOPIC: 'docker-connect-configs'
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_OFFSET_STORAGE_TOPIC: 'docker-connect-offsets'
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_STATUS_STORAGE_TOPIC: 'docker-connect-status'
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_AUTO_CREATE_TOPICS_ENABLE: "true"
+      ####
+      CONNECT_KEY_CONVERTER: 'org.apache.kafka.connect.storage.StringConverter'
+      CONNECT_VALUE_CONVERTER: 'org.apache.kafka.connect.storage.StringConverter'
+      CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: 'false'
+      CONNECT_REST_ADVERTISED_HOST_NAME: 'connect'
+      CONNECT_PLUGIN_PATH: '/usr/share/java,/user/share/confluent-hub-components'
     volumes:
-      - ./kafka_consumer/mongo-kafka-connect-1.12.0-all.jar:/plugins/mongo-kafka-connect-1.12.0-all.jar:ro
-    command: bin/connect-standalone config/connect.properties config/mongodb-sink-temperature.properties
+      #- ./kafka_connect/mongo-kafka-connect-1.12.0-all.jar:/usr/share/confluent-hub-components/mongo-kafka-connect-1.12.0-all.jar:ro
+      - ./kafka_connect/mongodb-sink-connector.json:/mongodb-sink-connector.json
+    working_dir: /
+    # command: 
+    #   - curl -X POST -H "Content-Type: application/json" --data @mongodb-sink-connector.json http://kafka_connect:8083/connectors -w "\n"
+
+
+    # bin/connect-standalone config/connect.properties config/mongodb-sink-temperature.properties
 
   # Sensors(H:01 T:234)
   # kafka-producer-0 :
@@ -95,14 +120,16 @@ services:
   #   depends_on:
   #     - broker
   #   command: /bin/sh -c "java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_3.json temperature-topic"
-  kafka-producer-4 :
+  kafka_producer_4 :
     image: producer:latest
     container_name: kafka-p4 # alpine 
     working_dir: /app
-    volumes:  # Mount folder with all sensor data
+    volumes:
       - ./data:/app/data  
     depends_on:
-      - broker
+      - kafka_broker
+      - mongodb
+      - kafka_connect
     command: /bin/sh -c "java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_4.json temperature-topic"
 
 #["java", "-cp", "/app/build/libs/kafka-producer-sensor-0.0.1.jar", "sensors.SensorProducerApplication ", "RTproducer.properties", "data/sensor_0.json"] 
@@ -113,54 +140,50 @@ services:
 # confluent docker config reference kafka example
 
 ################### Flink standalone application mode ###################
-  pyflink_jobmanager:
-    image: pyflink_alert:latest
-    container_name: jobmanager
-    depends_on:
-      - broker
-    ports:
-      - "8082:8081"
-    #entrypoint: ['/bin/sh', '-c']
-    command: >
-      jobmanager
-    volumes:
-     - ./flink/code:/opt/flink/code
-    environment:
-      - |
-        FLINK_PROPERTIES=
-        jobmanager.rpc.address: jobmanager
-        parallelism.default: 2     
+  # flink_jobmanager:
+  #   image: pyflink_alert:latest
+  #   container_name: flink-jobmanager
+  #   depends_on:
+  #     - kafka_broker
+  #   ports:
+  #     - "8082:8081"
+  #   #entrypoint: ['/bin/sh', '-c']
+  #   command: >
+  #     jobmanager
+  #   volumes:
+  #    - ./flink/code:/opt/flink/code
+  #   environment:
+  #     - |
+  #       FLINK_PROPERTIES=
+  #       jobmanager.rpc.address: jobmanager
+  #       parallelism.default: 2     
       
-  pyflink_taskmanager:
-    image: pyflink_alert:latest
-    container_name: taskmanager
-    depends_on:
-      - pyflink_jobmanager
-    command: >
-        taskmanager
-    scale: 1
-    volumes:
-      - ./flink/code:/opt/flink/code
-    environment:
-      - |
-        FLINK_PROPERTIES=
-        jobmanager.rpc.address: jobmanager
-        taskmanager.numberOfTaskSlots: 2 
-        parallelism.default: 2 
-
+  # flink_taskmanager:
+  #   image: pyflink_alert:latest
+  #   container_name: flink-taskmanager
+  #   depends_on:
+  #     - flink_jobmanager
+  #   command: >
+  #       taskmanager
+  #   scale: 1
+  #   volumes:
+  #     - ./flink/code:/opt/flink/code
+  #   environment:
+  #     - |
+  #       FLINK_PROPERTIES=
+  #       jobmanager.rpc.address: jobmanager
+  #       taskmanager.numberOfTaskSlots: 2 
+  #       parallelism.default: 2 
 
 ################### Mongo ###################
 ### Config variables https://hub.docker.com/r/bitnami/mongodb
-  # mongodb:
-  #   image: mongo:7.0.10-rc0-jammy
-  #   container_name: mongodb
-  #   environment:
-  #     - MONGO_INITDB_ROOT_USERNAME=root
-  #     - MONGO_INITDB_ROOT_PASSWORD=root
-  #     - MONGODB_INITDB_DATABASE=root
-  #   volumes:
-  #     - ./mongo/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro 
-  #   #   - volume1:/data/db # Mounted volume to persist data
+  mongodb:
+    image: mongo:7.0.10-rc0-jammy
+    container_name: mongodb
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=root
+      - MONGODB_INITDB_DATABASE=root
+    volumes:
+      - ./mongo/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro 
 
-volumes:
-  volume1:

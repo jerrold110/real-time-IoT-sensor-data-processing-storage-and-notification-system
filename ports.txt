@@ -1,0 +1,7 @@
+Kafka broker: 9092
+Kafka Plaintext host: 29092
+Kafka Controller: 29093
+Flink: 8082
+mongodb: 27017
+
+https://docs.confluent.io/platform/7.6/installation/system-requirements.html#docker

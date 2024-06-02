@@ -25,7 +25,7 @@ from pyflink.datastream.connectors.kafka import KafkaSource, KafkaOffsetsInitial
 from pyflink.datastream.window import SlidingEventTimeWindows, TimeWindow, SlidingProcessingTimeWindows
 
 
-print('Pyflink running 2.....')
+print('Pyflink event time processing running...')
 
 # Temperature threshold variables for overheating
 overheat_mean_threshold = 90.0
