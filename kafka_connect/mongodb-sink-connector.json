@@ -4,7 +4,7 @@
       "connector.class": "com.mongodb.kafka.connect.MongoSinkConnector",
       "tasks.max": "1",
       "topics": "temperature",
-      "connection.uri": "mongodb://mongodb",
+      "connection.uri": "mongodb://root:root@mongodb",
       "database": "sensors",
       "collection": "temperature",
       "key.converter": "org.apache.kafka.connect.storage.StringConverter",
