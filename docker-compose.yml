@@ -1,41 +1,5 @@
 services:
-###### Flink standalone application mode and alert handler
-  # pyflink_jobmanager:
-  #   image: pyflink_alert:latest
-  #   container_name: jobmanager
-  #   depends_on:
-  #     - broker
-  #   ports:
-  #     - "8082:8081"
-  #   #entrypoint: ['/bin/sh', '-c']
-  #   command: >
-  #     jobmanager
-  #   volumes:
-  #    - ./flink/code:/opt/flink/code
-  #   environment:
-  #     - |
-  #       FLINK_PROPERTIES=
-  #       jobmanager.rpc.address: jobmanager
-  #       parallelism.default: 2     
-      
-  # pyflink_taskmanager:
-  #   image: pyflink_alert:latest
-  #   container_name: taskmanager
-  #   depends_on:
-  #     - pyflink_jobmanager
-  #   command: >
-  #       taskmanager
-  #   scale: 1
-  #   volumes:
-  #     - ./flink/code:/opt/flink/code
-  #   environment:
-  #     - |
-  #       FLINK_PROPERTIES=
-  #       jobmanager.rpc.address: jobmanager
-  #       taskmanager.numberOfTaskSlots: 2 
-  #       parallelism.default: 2 
-
-##### Kafka 
+################### Kafka ###################
   broker:
     image: confluentinc/cp-kafka:7.4.1
     hostname: broker
@@ -82,19 +46,17 @@ services:
       echo -e 'Successfully created the following topics:'
       kafka-topics --bootstrap-server broker:9092 --list
       "
-  # https://docs.confluent.io/platform/current/schema-registry/index.html
-  # schema-registry:
-  #   image: confluentinc/cp-schema-registry:7.3.0
-  #   hostname: schema-registry
-  #   container_name: schema-registry
-  #   depends_on:
-  #     - broker
-  #   ports:
-  #     - 8081:8081
-  #   environment:
-  #     SCHEMA_REGISTRY_HOST_NAME: schema-registry # 
-  #     SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: broker:9092 # kafka brokers to connect to
-  #     SCHEMA_REGISTRY_LOG4J_ROOT_LOGLEVEL: WARN
+
+  # There is no code that runs in this container, it is just a kafka container that runs connect-standalone.sh
+  kafka-connect:
+    image: confluentinc/cp-kafka:7.4.1
+    container_name: kafka-connnect
+    depends_on:
+      - broker
+    working_dir: /
+    volumes:
+      - ./kafka_consumer/mongo-kafka-connect-1.12.0-all.jar:/plugins/mongo-kafka-connect-1.12.0-all.jar:ro
+    command: bin/connect-standalone config/connect.properties config/mongodb-sink-temperature.properties
 
   # Sensors(H:01 T:234)
   # kafka-producer-0 :
@@ -143,17 +105,6 @@ services:
       - broker
     command: /bin/sh -c "java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_4.json temperature-topic"
 
-  # THere is no code that runs in this container, it is just a kafka container that runs connect-standalone.sh
-  kafka-consumer-temperature:
-    image: confluentinc/cp-kafka:7.4.1
-    container_name: kafka-consumer-temperature
-    depends_on:
-      - broker
-    working_dir: /
-    volumes:
-      - ./kafka_consumer/mongo-kafka-connect-1.12.0-all.jar:/plugins/mongo-kafka-connect-1.12.0-all.jar:ro
-    command: bin/connect-standalone config/connect.properties config/mongodb-sink-temperature.properties
-
 #["java", "-cp", "/app/build/libs/kafka-producer-sensor-0.0.1.jar", "sensors.SensorProducerApplication ", "RTproducer.properties", "data/sensor_0.json"] 
 #- java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_0.json
 # ["sleep", "infinite"] 
@@ -161,18 +112,55 @@ services:
 # kafka-connect: confluentinc/cp-kafka-connect
 # confluent docker config reference kafka example
 
-###### Mongo
-### Config variables https://hub.docker.com/r/bitnami/mongodb
-  mongodb:
-    image: mongo:7.0.10-rc0-jammy
-    container_name: mongodb
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=root
-      - MONGO_INITDB_ROOT_PASSWORD=root
-      - MONGODB_INITDB_DATABASE=root
+################### Flink standalone application mode ###################
+  pyflink_jobmanager:
+    image: pyflink_alert:latest
+    container_name: jobmanager
+    depends_on:
+      - broker
+    ports:
+      - "8082:8081"
+    #entrypoint: ['/bin/sh', '-c']
+    command: >
+      jobmanager
     volumes:
-      - ./mongo/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro 
-    #   - volume1:/data/db # Mounted volume to persist data
+     - ./flink/code:/opt/flink/code
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        parallelism.default: 2     
+      
+  pyflink_taskmanager:
+    image: pyflink_alert:latest
+    container_name: taskmanager
+    depends_on:
+      - pyflink_jobmanager
+    command: >
+        taskmanager
+    scale: 1
+    volumes:
+      - ./flink/code:/opt/flink/code
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        taskmanager.numberOfTaskSlots: 2 
+        parallelism.default: 2 
+
+
+################### Mongo ###################
+### Config variables https://hub.docker.com/r/bitnami/mongodb
+  # mongodb:
+  #   image: mongo:7.0.10-rc0-jammy
+  #   container_name: mongodb
+  #   environment:
+  #     - MONGO_INITDB_ROOT_USERNAME=root
+  #     - MONGO_INITDB_ROOT_PASSWORD=root
+  #     - MONGODB_INITDB_DATABASE=root
+  #   volumes:
+  #     - ./mongo/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro 
+  #   #   - volume1:/data/db # Mounted volume to persist data
 
 volumes:
   volume1:
