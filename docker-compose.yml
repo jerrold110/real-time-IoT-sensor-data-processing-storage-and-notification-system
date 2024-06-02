@@ -56,23 +56,26 @@ services:
     depends_on:
       - kafka_broker
     environment:
-      CONNECT_BOOTSTRAP_SERVERS: 'kafka_broker:9092'
+      KAFKA_JMX_PORT: 35000
+      KAFKA_JMX_HOSTNAME: localhost
+      CONNECT_BOOTSTRAP_SERVERS: "kafka_broker:9092"
+      CONNECT_REST_ADVERTISED_HOST_NAME: connect
       CONNECT_REST_PORT: 8083
-      CONNECT_GROUP_ID: 'kafka-connect-group'
-      #### container will crash without these
-      CONNECT_CONFIG_STORAGE_TOPIC: 'docker-connect-configs'
+      CONNECT_GROUP_ID: connect-cluster-group
+      CONNECT_CONFIG_STORAGE_TOPIC: docker-connect-configs
       CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
-      CONNECT_OFFSET_STORAGE_TOPIC: 'docker-connect-offsets'
+      CONNECT_OFFSET_FLUSH_INTERVAL_MS: 10000
+      CONNECT_OFFSET_STORAGE_TOPIC: docker-connect-offsets
       CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
-      CONNECT_STATUS_STORAGE_TOPIC: 'docker-connect-status'
+      CONNECT_STATUS_STORAGE_TOPIC: docker-connect-status
       CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      CONNECT_PLUGIN_PATH: "/usr/share/java,/usr/share/confluent-hub-components"
+      CONNECT_CONNECTIONS_MAX_IDLE_MS: 180000
+      CONNECT_METADATA_MAX_AGE_MS: 180000
       CONNECT_AUTO_CREATE_TOPICS_ENABLE: "true"
-      ####
       CONNECT_KEY_CONVERTER: 'org.apache.kafka.connect.storage.StringConverter'
       CONNECT_VALUE_CONVERTER: 'org.apache.kafka.connect.storage.StringConverter'
-      CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: 'false'
-      CONNECT_REST_ADVERTISED_HOST_NAME: 'connect'
-      CONNECT_PLUGIN_PATH: '/usr/share/java,/user/share/confluent-hub-components'
     volumes:
       #- ./kafka_connect/mongo-kafka-connect-1.12.0-all.jar:/usr/share/confluent-hub-components/mongo-kafka-connect-1.12.0-all.jar:ro
       - ./kafka_connect/mongodb-sink-connector.json:/mongodb-sink-connector.json
