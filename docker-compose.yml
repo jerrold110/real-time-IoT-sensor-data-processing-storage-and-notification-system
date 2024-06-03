@@ -78,10 +78,10 @@ services:
       CONNECT_VALUE_CONVERTER: 'org.apache.kafka.connect.storage.StringConverter'
     volumes:
       #- ./kafka_connect/mongo-kafka-connect-1.12.0-all.jar:/usr/share/confluent-hub-components/mongo-kafka-connect-1.12.0-all.jar:ro
-      - ./kafka_connect/mongodb-sink-connector.json:/mongodb-sink-connector.json
+      - ./kafka_connect/mongo-sink-connector.json:/mongo-sink-connector.json
     working_dir: /
     # command: 
-    #   - curl -X POST -H "Content-Type: application/json" --data @mongodb-sink-connector.json http://kafka_connect:8083/connectors -w "\n"
+    #   - curl -X POST -H "Content-Type: application/json" --data @mongo-sink-connector.json http://kafka_connect:8083/connectors -w "\n"
 
 
     # bin/connect-standalone config/connect.properties config/mongodb-sink-temperature.properties
@@ -183,6 +183,8 @@ services:
   mongodb:
     image: mongo:7.0.10-rc0-jammy
     container_name: mongodb
+    ports:
+      - 12345:27017
     environment:
       - MONGO_INITDB_ROOT_USERNAME=root
       - MONGO_INITDB_ROOT_PASSWORD=root
