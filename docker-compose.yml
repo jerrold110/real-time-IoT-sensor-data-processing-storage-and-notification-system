@@ -50,7 +50,7 @@ services:
   kafka_connect:
     build:
       context: .
-      dockerfile: connect.Dockerfile
+      dockerfile: docker_images/kafka_connect/connect.Dockerfile
     hostname: connect
     container_name: kafka-connect
     depends_on:
@@ -69,7 +69,7 @@ services:
       CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
       CONNECT_STATUS_STORAGE_TOPIC: docker-connect-status
       CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
-      CONNECT_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      #CONNECT_ZOOKEEPER_CONNECT: "zookeeper:2181"
       CONNECT_PLUGIN_PATH: "/usr/share/java,/usr/share/confluent-hub-components"
       CONNECT_CONNECTIONS_MAX_IDLE_MS: 180000
       CONNECT_METADATA_MAX_AGE_MS: 180000
@@ -77,52 +77,57 @@ services:
       CONNECT_KEY_CONVERTER: 'org.apache.kafka.connect.storage.StringConverter'
       CONNECT_VALUE_CONVERTER: 'org.apache.kafka.connect.storage.StringConverter'
     volumes:
+      - ./kafka_connect/mongo-sink-connector-tem.json:/mongo-sink-connector-tem.json
+      - ./kafka_connect/mongo-sink-connector-hum.json:/mongo-sink-connector-hum.json
+      - ./kafka_connect/entrypoint.sh:/entrypoint.sh
       #- ./kafka_connect/mongo-kafka-connect-1.12.0-all.jar:/usr/share/confluent-hub-components/mongo-kafka-connect-1.12.0-all.jar:ro
-      - ./kafka_connect/mongo-sink-connector.json:/mongo-sink-connector.json
     working_dir: /
-    # command: 
-    #   - curl -X POST -H "Content-Type: application/json" --data @mongo-sink-connector.json http://kafka_connect:8083/connectors -w "\n"
-
-
-    # bin/connect-standalone config/connect.properties config/mongodb-sink-temperature.properties
 
   # Sensors(H:01 T:234)
-  # kafka-producer-0 :
-  #   image: producer:latest
-  #   container_name: kafka-p0 # alpine 
-  #   working_dir: /app
-  #   volumes:  # Mount folder with all sensor data
-  #     - ./data:/app/data  
-  #   depends_on:
-  #     - broker
-  #   command: /bin/sh -c "java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_0.json humidity-topic"
-  # kafka-producer-1 :
-  #   image: producer:latest
-  #   container_name: kafka-p1 # alpine 
-  #   working_dir: /app
-  #   volumes:  # Mount folder with all sensor data
-  #     - ./data:/app/data  
-  #   depends_on:
-  #     - broker
-  #   command: /bin/sh -c "java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_1.json humidity-topic"
-  # kafka-producer-2 :
-  #   image: producer:latest
-  #   container_name: kafka-p2 # alpine 
-  #   working_dir: /app
-  #   volumes:  # Mount folder with all sensor data
-  #     - ./data:/app/data  
-  #   depends_on:
-  #     - broker
-  #   command: /bin/sh -c "java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_2.json temperature-topic"
-  # kafka-producer-3 :
-  #   image: producer:latest
-  #   container_name: kafka-p3 # alpine 
-  #   working_dir: /app
-  #   volumes:  # Mount folder with all sensor data
-  #     - ./data:/app/data  
-  #   depends_on:
-  #     - broker
-  #   command: /bin/sh -c "java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_3.json temperature-topic"
+  kafka-producer-0 :
+    image: producer:latest
+    container_name: kafka-p0 # alpine 
+    working_dir: /app
+    volumes:  # Mount folder with all sensor data
+      - ./data:/app/data  
+    depends_on:
+      - kafka_broker
+      - mongodb
+      - kafka_connect
+    command: /bin/sh -c "java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_0.json humidity-topic"
+  kafka-producer-1 :
+    image: producer:latest
+    container_name: kafka-p1 # alpine 
+    working_dir: /app
+    volumes:  # Mount folder with all sensor data
+      - ./data:/app/data  
+    depends_on:
+      - kafka_broker
+      - mongodb
+      - kafka_connect
+    command: /bin/sh -c "java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_1.json humidity-topic"
+  kafka-producer-2 :
+    image: producer:latest
+    container_name: kafka-p2 # alpine 
+    working_dir: /app
+    volumes:  # Mount folder with all sensor data
+      - ./data:/app/data  
+    depends_on:
+      - kafka_broker
+      - mongodb
+      - kafka_connect
+    command: /bin/sh -c "java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_2.json temperature-topic"
+  kafka-producer-3 :
+    image: producer:latest
+    container_name: kafka-p3 # alpine 
+    working_dir: /app
+    volumes:  # Mount folder with all sensor data
+      - ./data:/app/data  
+    depends_on:
+      - kafka_broker
+      - mongodb
+      - kafka_connect
+    command: /bin/sh -c "java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_3.json temperature-topic"
   kafka_producer_4 :
     image: producer:latest
     container_name: kafka-p4 # alpine 
@@ -138,45 +143,42 @@ services:
 #["java", "-cp", "/app/build/libs/kafka-producer-sensor-0.0.1.jar", "sensors.SensorProducerApplication ", "RTproducer.properties", "data/sensor_0.json"] 
 #- java -cp build/libs/kafka-producer-sensor-0.0.1.jar sensors.SensorProducerApplication RTproducer.properties data/sensor_0.json
 # ["sleep", "infinite"] 
-      
-# kafka-connect: confluentinc/cp-kafka-connect
-# confluent docker config reference kafka example
 
 ################### Flink standalone application mode ###################
-  # flink_jobmanager:
-  #   image: pyflink_alert:latest
-  #   container_name: flink-jobmanager
-  #   depends_on:
-  #     - kafka_broker
-  #   ports:
-  #     - "8082:8081"
-  #   #entrypoint: ['/bin/sh', '-c']
-  #   command: >
-  #     jobmanager
-  #   volumes:
-  #    - ./flink/code:/opt/flink/code
-  #   environment:
-  #     - |
-  #       FLINK_PROPERTIES=
-  #       jobmanager.rpc.address: jobmanager
-  #       parallelism.default: 2     
+  flink_jobmanager:
+    image: pyflink_alert:latest
+    container_name: flink-jobmanager
+    depends_on:
+      - kafka_broker
+    ports:
+      - "8082:8081"
+    #entrypoint: ['/bin/sh', '-c']
+    command: >
+      jobmanager
+    volumes:
+     - ./flink/code:/opt/flink/code
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        parallelism.default: 2     
       
-  # flink_taskmanager:
-  #   image: pyflink_alert:latest
-  #   container_name: flink-taskmanager
-  #   depends_on:
-  #     - flink_jobmanager
-  #   command: >
-  #       taskmanager
-  #   scale: 1
-  #   volumes:
-  #     - ./flink/code:/opt/flink/code
-  #   environment:
-  #     - |
-  #       FLINK_PROPERTIES=
-  #       jobmanager.rpc.address: jobmanager
-  #       taskmanager.numberOfTaskSlots: 2 
-  #       parallelism.default: 2 
+  flink_taskmanager:
+    image: pyflink_alert:latest
+    container_name: flink-taskmanager
+    depends_on:
+      - flink_jobmanager
+    command: >
+        taskmanager
+    scale: 1
+    volumes:
+      - ./flink/code:/opt/flink/code
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        taskmanager.numberOfTaskSlots: 2 
+        parallelism.default: 2 
 
 ################### Mongo ###################
 ### Config variables https://hub.docker.com/r/bitnami/mongodb

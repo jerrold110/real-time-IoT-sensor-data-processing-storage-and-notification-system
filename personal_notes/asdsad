@@ -1,0 +1,6 @@
+curl -X POST -H "Content-Type: application/json" --data @mongo-sink-connector-tem.json http://kafka_connect:8083/connectors -w "\n"
+
+mongosh -u sensor_user -p sensor_pass --authenticationDatabase sensors sensors
+mongosh -u root -p root
+use sensors
+db.temperature.find().pretty()

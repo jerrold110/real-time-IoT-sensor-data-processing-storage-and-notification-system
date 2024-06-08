@@ -1,0 +1,16 @@
+{
+  "name": "mongodb-sink-connector-hum",
+  "config": {
+    "connector.class": "com.mongodb.kafka.connect.MongoSinkConnector",
+    "tasks.max": "1",
+    "topics": "humidity-topic",
+    "connection.uri": "mongodb://sensor_user:sensor_pass@mongodb/sensors",
+    "database": "sensors",
+    "collection": "humidity",
+    "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+    "value.converter": "org.apache.kafka.connect.storage.StringConverter",
+    "value.converter.schemas.enable": false,
+    "batch.size":3,
+    "max.batch.size":5
+  }
+}
