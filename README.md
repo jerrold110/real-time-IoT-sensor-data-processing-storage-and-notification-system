@@ -8,3 +8,11 @@ docker compose up -d
 ./init.sh 
 ```
 ## Overview
+
+Developed a comprehensive IoT sensor monitoring system leveraging Kafka-based pub-sub architecture to manage data streams from numerous sensors. Utilized Flink for real-time, stateful, event-time sliding window processing to detect and alert users of overheating issues, enabling automatic device shutdowns. Implemented Kafka Connect to integrate with MongoDB for persistent data storage for detailed analysis and reporting.
+
+## IoT system architecture and Kafka
+
+## Flink
+
+## MongoDB
