@@ -13,9 +13,13 @@ This project is a comprehensive IoT sensor monitoring system utilizing a Kafka-b
 
 ## Architecture
 IoT sensors: Devices streaming messages every second to Kafka
+
 Kafka: Acts as the messaging broker.
+
 Flink: Processes incoming sensor data in real-time.
+
 Kafka Connect: Connects Kafka with MongoDB.
+
 MongoDB: Stores sensor data for analysis and reporting.
 
 ## Docker Compose Services
